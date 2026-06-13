@@ -1,0 +1,29 @@
+name: Cosmonaut
+version: '${version}'
+main: com.italiarevenge.cosmonaut.Cosmonaut
+api-version: '1.21'
+load: POSTWORLD
+description: "Plugin di esplorazione spaziale"
+authors:
+  - ItaliaRevenge
+
+commands:
+  cosmonaut:
+    description: "Comandi principali di Cosmonaut"
+    usage: "/cosmonaut <setplanet|list|tp|reload|give>"
+    permission: cosmonaut.use
+  lancio:
+    description: "Avvia la sequenza di lancio del razzo"
+    usage: "/lancio"
+    permission: cosmonaut.use
+
+permissions:
+  cosmonaut.use:
+    description: "Permesso base per usare il razzo"
+    default: true
+  cosmonaut.admin:
+    description: "Permessi admin (setplanet, tp, give)"
+    default: op
+  cosmonaut.bypass:
+    description: "Ignora atmosfera e gravita' ridotta"
+    default: op

@@ -1,0 +1,12 @@
+launch-cooldown: 60
+pressurized-radius: 10
+
+planets:
+  luna:
+    world-name: luna
+    gravity-multiplier: 0.4
+    has-atmosphere: false
+  marte:
+    world-name: marte
+    gravity-multiplier: 0.5
+    has-atmosphere: false
