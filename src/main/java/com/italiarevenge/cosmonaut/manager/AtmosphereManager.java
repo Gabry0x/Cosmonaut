@@ -69,9 +69,7 @@ public class AtmosphereManager {
         saveData();
     }
 
-    public boolean isInPressurizedZone(Player player) {
-        double radius = plugin.getConfigManager().getPressurizedRadius();
-        double radiusSq = radius * radius;
+    public boolean isInPressurizedZone(Player player, double radiusSq) {
         String worldName = player.getWorld().getName();
         for (PressurizedZone zone : zones) {
             if (!zone.world.equals(worldName)) continue;
@@ -85,15 +83,13 @@ public class AtmosphereManager {
     }
 
     private void tick() {
+        double radiusSq = (double) plugin.getConfigManager().getPressurizedRadius();
+        radiusSq *= radiusSq;
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            if (player.hasPermission("cosmonaut.bypass")) continue;
             Planet planet = plugin.getConfigManager().getPlanetByWorld(player.getWorld().getName());
             if (planet == null || planet.hasAtmosphere()) continue;
-            if (isInPressurizedZone(player)) {
-                restoreAir(player);
-                continue;
-            }
-            if (hasSpaceHelmet(player)) {
+            if (player.hasPermission("cosmonaut.bypass")) continue;
+            if (isInPressurizedZone(player, radiusSq) || hasSpaceHelmet(player)) {
                 restoreAir(player);
                 continue;
             }

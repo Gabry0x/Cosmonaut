@@ -22,12 +22,12 @@ public class GravityManager {
     @SuppressWarnings("deprecation")
     private void tick() {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            if (player.hasPermission("cosmonaut.bypass")) continue;
             if (player.isFlying() || player.isOnGround()) continue;
 
-            String worldName = player.getWorld().getName();
-            Planet planet = plugin.getConfigManager().getPlanetByWorld(worldName);
+            Planet planet = plugin.getConfigManager().getPlanetByWorld(player.getWorld().getName());
             if (planet == null) continue;
+
+            if (player.hasPermission("cosmonaut.bypass")) continue;
 
             double counterforce = 0.08 * (1.0 - planet.getGravityMultiplier());
             Vector vel = player.getVelocity();

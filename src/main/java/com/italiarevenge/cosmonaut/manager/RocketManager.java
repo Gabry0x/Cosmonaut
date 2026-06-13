@@ -258,10 +258,10 @@ public class RocketManager {
                 player.teleport(pos[0]);
 
                 World pw = pos[0].getWorld();
-                if (pw != null) {
+                if (pw != null && ticks % 2 == 0) {
                     Location exhaust = pos[0].clone().subtract(0, 3, 0);
-                    pw.spawnParticle(Particle.FLAME, exhaust, 25, 0.4, 0.2, 0.4, 0.08);
-                    pw.spawnParticle(Particle.SMOKE, exhaust, 20, 0.5, 0.5, 0.5, 0.05);
+                    pw.spawnParticle(Particle.FLAME, exhaust, 10, 0.4, 0.2, 0.4, 0.08);
+                    pw.spawnParticle(Particle.SMOKE, exhaust, 8, 0.5, 0.5, 0.5, 0.05);
                 }
 
                 if (ticks >= 100) {
