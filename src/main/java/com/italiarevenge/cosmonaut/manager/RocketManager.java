@@ -10,6 +10,7 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
@@ -124,59 +125,87 @@ public class RocketManager {
     }
 
     public void placeRocketStructure(Block base) {
-        // Booster legs at four corners, Y=0..3
+        for (BlockEntry e : getRocketBlocks())
+            base.getRelative(e.dx(), e.dy(), e.dz()).setType(e.material());
+    }
+
+    private List<BlockEntry> getRocketBlocks() {
+        List<BlockEntry> b = new ArrayList<>();
+        // Booster legs Y=0..3
         for (int y = 0; y <= 3; y++) {
-            setR(base, -2, y, -2, Material.BLACK_CONCRETE);
-            setR(base, 2, y, -2, Material.BLACK_CONCRETE);
-            setR(base, -2, y, 2, Material.BLACK_CONCRETE);
-            setR(base, 2, y, 2, Material.BLACK_CONCRETE);
+            b.add(new BlockEntry(-2, y, -2, Material.BLACK_CONCRETE));
+            b.add(new BlockEntry( 2, y, -2, Material.BLACK_CONCRETE));
+            b.add(new BlockEntry(-2, y,  2, Material.BLACK_CONCRETE));
+            b.add(new BlockEntry( 2, y,  2, Material.BLACK_CONCRETE));
         }
-        // Lower body Y=0..3
-        for (int y = 0; y <= 3; y++) place3x3(base, y, Material.ORANGE_CONCRETE, Material.BLACK_CONCRETE);
+        // Body Y=0..3 (3x3, black corners)
+        for (int y = 0; y <= 3; y++)
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dz = -1; dz <= 1; dz++)
+                    b.add(new BlockEntry(dx, y, dz, corner(dx,dz) ? Material.BLACK_CONCRETE : Material.ORANGE_CONCRETE));
         // Lower metallic band Y=4
         for (int dx = -1; dx <= 1; dx++)
             for (int dz = -1; dz <= 1; dz++)
-                setR(base, dx, 4, dz, Material.GRAY_CONCRETE);
-        // Body above band Y=5
-        place3x3(base, 5, Material.ORANGE_CONCRETE, Material.BLACK_CONCRETE);
+                b.add(new BlockEntry(dx, 4, dz, Material.GRAY_CONCRETE));
+        // Body Y=5
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dz = -1; dz <= 1; dz++)
+                b.add(new BlockEntry(dx, 5, dz, corner(dx,dz) ? Material.BLACK_CONCRETE : Material.ORANGE_CONCRETE));
         // Window rows Y=6..7
         for (int y = 6; y <= 7; y++) {
-            setR(base, -1, y, -1, Material.BLACK_CONCRETE);
-            setR(base, 1, y, -1, Material.BLACK_CONCRETE);
-            setR(base, -1, y, 1, Material.BLACK_CONCRETE);
-            setR(base, 1, y, 1, Material.BLACK_CONCRETE);
-            setR(base, 0, y, -1, Material.ORANGE_STAINED_GLASS);
-            setR(base, 0, y, 1, Material.ORANGE_STAINED_GLASS);
-            setR(base, -1, y, 0, Material.ORANGE_STAINED_GLASS);
-            setR(base, 1, y, 0, Material.ORANGE_STAINED_GLASS);
-            setR(base, 0, y, 0, Material.ORANGE_CONCRETE);
+            b.add(new BlockEntry(-1, y, -1, Material.BLACK_CONCRETE));
+            b.add(new BlockEntry( 1, y, -1, Material.BLACK_CONCRETE));
+            b.add(new BlockEntry(-1, y,  1, Material.BLACK_CONCRETE));
+            b.add(new BlockEntry( 1, y,  1, Material.BLACK_CONCRETE));
+            b.add(new BlockEntry( 0, y, -1, Material.ORANGE_STAINED_GLASS));
+            b.add(new BlockEntry( 0, y,  1, Material.ORANGE_STAINED_GLASS));
+            b.add(new BlockEntry(-1, y,  0, Material.ORANGE_STAINED_GLASS));
+            b.add(new BlockEntry( 1, y,  0, Material.ORANGE_STAINED_GLASS));
+            b.add(new BlockEntry( 0, y,  0, Material.ORANGE_CONCRETE));
         }
-        // Body above windows Y=8
-        place3x3(base, 8, Material.ORANGE_CONCRETE, Material.BLACK_CONCRETE);
+        // Body Y=8
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dz = -1; dz <= 1; dz++)
+                b.add(new BlockEntry(dx, 8, dz, corner(dx,dz) ? Material.BLACK_CONCRETE : Material.ORANGE_CONCRETE));
         // Upper metallic band Y=9
         for (int dx = -1; dx <= 1; dx++)
             for (int dz = -1; dz <= 1; dz++)
-                setR(base, dx, 9, dz, Material.GRAY_CONCRETE);
+                b.add(new BlockEntry(dx, 9, dz, Material.GRAY_CONCRETE));
         // Upper body Y=10..11
-        for (int y = 10; y <= 11; y++) place3x3(base, y, Material.ORANGE_CONCRETE, Material.BLACK_CONCRETE);
-        // Nose transition Y=12 (cross shape)
-        setR(base, 0, 12, -1, Material.BLACK_CONCRETE);
-        setR(base, 0, 12, 1, Material.BLACK_CONCRETE);
-        setR(base, -1, 12, 0, Material.BLACK_CONCRETE);
-        setR(base, 0, 12, 0, Material.BLACK_CONCRETE);
-        setR(base, 1, 12, 0, Material.BLACK_CONCRETE);
+        for (int y = 10; y <= 11; y++)
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dz = -1; dz <= 1; dz++)
+                    b.add(new BlockEntry(dx, y, dz, corner(dx,dz) ? Material.BLACK_CONCRETE : Material.ORANGE_CONCRETE));
+        // Nose cross Y=12
+        b.add(new BlockEntry( 0, 12, -1, Material.BLACK_CONCRETE));
+        b.add(new BlockEntry( 0, 12,  1, Material.BLACK_CONCRETE));
+        b.add(new BlockEntry(-1, 12,  0, Material.BLACK_CONCRETE));
+        b.add(new BlockEntry( 0, 12,  0, Material.BLACK_CONCRETE));
+        b.add(new BlockEntry( 1, 12,  0, Material.BLACK_CONCRETE));
         // Tip Y=13
-        setR(base, 0, 13, 0, Material.BLACK_CONCRETE);
+        b.add(new BlockEntry(0, 13, 0, Material.BLACK_CONCRETE));
+        return b;
     }
 
-    private void place3x3(Block base, int y, Material body, Material corner) {
-        for (int dx = -1; dx <= 1; dx++)
-            for (int dz = -1; dz <= 1; dz++)
-                setR(base, dx, y, dz, (Math.abs(dx) == 1 && Math.abs(dz) == 1) ? corner : body);
-    }
+    private static boolean corner(int dx, int dz) { return Math.abs(dx) == 1 && Math.abs(dz) == 1; }
 
-    private void setR(Block base, int dx, int dy, int dz, Material mat) {
-        base.getRelative(dx, dy, dz).setType(mat);
+    private record BlockEntry(int dx, int dy, int dz, Material material) {}
+
+    private static final int DISPLAY_INTERVAL = 4; // ticks between display position packets
+
+    private List<BlockDisplay> spawnRocketDisplays(Location base) {
+        World w = base.getWorld();
+        if (w == null) return List.of();
+        List<BlockDisplay> displays = new ArrayList<>();
+        for (BlockEntry e : getRocketBlocks()) {
+            Location loc = base.clone().add(e.dx(), e.dy(), e.dz());
+            BlockDisplay bd = w.spawn(loc, BlockDisplay.class);
+            bd.setBlock(e.material().createBlockData());
+            // Client interpolates smoothly between teleports: same visual quality, 4× fewer packets
+            bd.setTeleportDuration(DISPLAY_INTERVAL);
+            displays.add(bd);
+        }
+        return displays;
     }
 
     public boolean canPlaceRocket(Block base) {
@@ -315,31 +344,57 @@ public class RocketManager {
             w.playSound(base, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, SoundCategory.MASTER, 3f, 0.5f);
         }
 
+        // Spawn visual displays before removing real blocks (no visual gap)
+        final List<BlockDisplay> displays = spawnRocketDisplays(base);
         removeStructure(base);
         removeRocket(base);
 
-        final Location[] pos = {base.clone().add(0.5, 4, 0.5)};
+        // Position player in the cockpit window area of the rocket
+        Location playerPos = base.clone().add(0.5, 7.5, 0.5);
+        player.teleport(playerPos);
 
         new BukkitRunnable() {
             int ticks = 0;
+            double intervalAccum = 0; // Y distance accumulated since last display batch
 
             @Override
             public void run() {
-                if (!player.isOnline()) { cancel(); inFlight.remove(player.getUniqueId()); return; }
+                if (!player.isOnline()) {
+                    displays.forEach(org.bukkit.entity.Entity::remove);
+                    cancel();
+                    inFlight.remove(player.getUniqueId());
+                    return;
+                }
 
                 ticks++;
-                double speed = 0.4 + ticks * 0.015;
-                pos[0].add(0, speed, 0);
-                player.teleport(pos[0]);
+                double speed = 0.3 + ticks * 0.012;
+                intervalAccum += speed;
 
-                World pw = pos[0].getWorld();
-                if (pw != null && ticks % 2 == 0) {
-                    Location exhaust = pos[0].clone().subtract(0, 3, 0);
-                    pw.spawnParticle(Particle.FLAME, exhaust, 10, 0.4, 0.2, 0.4, 0.08);
-                    pw.spawnParticle(Particle.SMOKE, exhaust, 8, 0.5, 0.5, 0.5, 0.05);
+                // Player: teleport every tick (1 cheap packet, keeps movement smooth)
+                playerPos.add(0, speed, 0);
+                player.teleport(playerPos);
+
+                // Displays: batch update every DISPLAY_INTERVAL ticks.
+                // setTeleportDuration() makes the client interpolate visually between
+                // each teleport, so the rocket looks perfectly smooth despite fewer packets.
+                // 120 entities × 25 updates = 3 000 packets instead of 12 000.
+                if (ticks % DISPLAY_INTERVAL == 0) {
+                    double dist = intervalAccum;
+                    for (BlockDisplay bd : displays)
+                        bd.teleport(bd.getLocation().add(0, dist, 0));
+                    intervalAccum = 0;
+
+                    // Exhaust particles piggybacked on the same interval (5 updates/sec)
+                    Location exhaust = playerPos.clone().subtract(0, 9, 0);
+                    World pw = exhaust.getWorld();
+                    if (pw != null) {
+                        pw.spawnParticle(Particle.FLAME, exhaust, 8, 0.8, 0.2, 0.8, 0.07);
+                        pw.spawnParticle(Particle.SMOKE, exhaust, 5, 1.0, 0.3, 1.0, 0.04);
+                    }
                 }
 
                 if (ticks >= 100) {
+                    displays.forEach(org.bukkit.entity.Entity::remove);
                     cancel();
                     showBlackScreenAndTeleport(player, destination, originalMode, returning);
                 }
@@ -413,26 +468,8 @@ public class RocketManager {
         World w = base.getWorld();
         if (w == null) return;
         Block b = w.getBlockAt(base);
-        // Booster legs
-        for (int y = 0; y <= 3; y++) {
-            b.getRelative(-2, y, -2).setType(Material.AIR);
-            b.getRelative(2, y, -2).setType(Material.AIR);
-            b.getRelative(-2, y, 2).setType(Material.AIR);
-            b.getRelative(2, y, 2).setType(Material.AIR);
-        }
-        // 3x3 body Y=0..11
-        for (int y = 0; y <= 11; y++)
-            for (int dx = -1; dx <= 1; dx++)
-                for (int dz = -1; dz <= 1; dz++)
-                    b.getRelative(dx, y, dz).setType(Material.AIR);
-        // Nose cross Y=12
-        b.getRelative(0, 12, -1).setType(Material.AIR);
-        b.getRelative(0, 12, 1).setType(Material.AIR);
-        b.getRelative(-1, 12, 0).setType(Material.AIR);
-        b.getRelative(0, 12, 0).setType(Material.AIR);
-        b.getRelative(1, 12, 0).setType(Material.AIR);
-        // Tip Y=13
-        b.getRelative(0, 13, 0).setType(Material.AIR);
+        for (BlockEntry e : getRocketBlocks())
+            b.getRelative(e.dx(), e.dy(), e.dz()).setType(Material.AIR);
     }
 
     public boolean isOnCooldown(Player player) {
