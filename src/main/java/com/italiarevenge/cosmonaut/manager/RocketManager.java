@@ -8,8 +8,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.type.PointedDripstone;
+
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -125,20 +124,63 @@ public class RocketManager {
     }
 
     public void placeRocketStructure(Block base) {
-        base.setType(Material.IRON_BLOCK);
-        base.getRelative(0, 1, 0).setType(Material.IRON_BLOCK);
-        base.getRelative(0, 2, 0).setType(Material.IRON_BLOCK);
-        Block cone = base.getRelative(0, 3, 0);
-        cone.setType(Material.POINTED_DRIPSTONE);
-        if (cone.getBlockData() instanceof PointedDripstone pd) {
-            pd.setVerticalDirection(BlockFace.UP);
-            pd.setThickness(PointedDripstone.Thickness.TIP);
-            cone.setBlockData(pd);
+        // Booster legs at four corners, Y=0..3
+        for (int y = 0; y <= 3; y++) {
+            setR(base, -2, y, -2, Material.BLACK_CONCRETE);
+            setR(base, 2, y, -2, Material.BLACK_CONCRETE);
+            setR(base, -2, y, 2, Material.BLACK_CONCRETE);
+            setR(base, 2, y, 2, Material.BLACK_CONCRETE);
         }
+        // Lower body Y=0..3
+        for (int y = 0; y <= 3; y++) place3x3(base, y, Material.ORANGE_CONCRETE, Material.BLACK_CONCRETE);
+        // Lower metallic band Y=4
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dz = -1; dz <= 1; dz++)
+                setR(base, dx, 4, dz, Material.GRAY_CONCRETE);
+        // Body above band Y=5
+        place3x3(base, 5, Material.ORANGE_CONCRETE, Material.BLACK_CONCRETE);
+        // Window rows Y=6..7
+        for (int y = 6; y <= 7; y++) {
+            setR(base, -1, y, -1, Material.BLACK_CONCRETE);
+            setR(base, 1, y, -1, Material.BLACK_CONCRETE);
+            setR(base, -1, y, 1, Material.BLACK_CONCRETE);
+            setR(base, 1, y, 1, Material.BLACK_CONCRETE);
+            setR(base, 0, y, -1, Material.ORANGE_STAINED_GLASS);
+            setR(base, 0, y, 1, Material.ORANGE_STAINED_GLASS);
+            setR(base, -1, y, 0, Material.ORANGE_STAINED_GLASS);
+            setR(base, 1, y, 0, Material.ORANGE_STAINED_GLASS);
+            setR(base, 0, y, 0, Material.ORANGE_CONCRETE);
+        }
+        // Body above windows Y=8
+        place3x3(base, 8, Material.ORANGE_CONCRETE, Material.BLACK_CONCRETE);
+        // Upper metallic band Y=9
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dz = -1; dz <= 1; dz++)
+                setR(base, dx, 9, dz, Material.GRAY_CONCRETE);
+        // Upper body Y=10..11
+        for (int y = 10; y <= 11; y++) place3x3(base, y, Material.ORANGE_CONCRETE, Material.BLACK_CONCRETE);
+        // Nose transition Y=12 (cross shape)
+        setR(base, 0, 12, -1, Material.BLACK_CONCRETE);
+        setR(base, 0, 12, 1, Material.BLACK_CONCRETE);
+        setR(base, -1, 12, 0, Material.BLACK_CONCRETE);
+        setR(base, 0, 12, 0, Material.BLACK_CONCRETE);
+        setR(base, 1, 12, 0, Material.BLACK_CONCRETE);
+        // Tip Y=13
+        setR(base, 0, 13, 0, Material.BLACK_CONCRETE);
+    }
+
+    private void place3x3(Block base, int y, Material body, Material corner) {
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dz = -1; dz <= 1; dz++)
+                setR(base, dx, y, dz, (Math.abs(dx) == 1 && Math.abs(dz) == 1) ? corner : body);
+    }
+
+    private void setR(Block base, int dx, int dy, int dz, Material mat) {
+        base.getRelative(dx, dy, dz).setType(mat);
     }
 
     public boolean canPlaceRocket(Block base) {
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i <= 13; i++) {
             if (!base.getRelative(0, i, 0).getType().isAir()) return false;
         }
         return true;
@@ -148,10 +190,10 @@ public class RocketManager {
         World w = base.getWorld();
         if (w == null) return false;
         Block b0 = w.getBlockAt(base);
-        if (b0.getType() != Material.IRON_BLOCK) return false;
-        if (b0.getRelative(0, 1, 0).getType() != Material.IRON_BLOCK) return false;
-        if (b0.getRelative(0, 2, 0).getType() != Material.IRON_BLOCK) return false;
-        return b0.getRelative(0, 3, 0).getType() == Material.POINTED_DRIPSTONE;
+        if (b0.getType() != Material.ORANGE_CONCRETE) return false;
+        if (b0.getRelative(0, 4, 0).getType() != Material.GRAY_CONCRETE) return false;
+        if (b0.getRelative(0, 13, 0).getType() != Material.BLACK_CONCRETE) return false;
+        return b0.getRelative(-2, 0, -2).getType() == Material.BLACK_CONCRETE;
     }
 
     public Rocket findNearestRocket(Location from, double maxDist) {
@@ -370,9 +412,27 @@ public class RocketManager {
     private void removeStructure(Location base) {
         World w = base.getWorld();
         if (w == null) return;
-        for (int i = 0; i < 4; i++) {
-            w.getBlockAt(base.clone().add(0, i, 0)).setType(Material.AIR);
+        Block b = w.getBlockAt(base);
+        // Booster legs
+        for (int y = 0; y <= 3; y++) {
+            b.getRelative(-2, y, -2).setType(Material.AIR);
+            b.getRelative(2, y, -2).setType(Material.AIR);
+            b.getRelative(-2, y, 2).setType(Material.AIR);
+            b.getRelative(2, y, 2).setType(Material.AIR);
         }
+        // 3x3 body Y=0..11
+        for (int y = 0; y <= 11; y++)
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dz = -1; dz <= 1; dz++)
+                    b.getRelative(dx, y, dz).setType(Material.AIR);
+        // Nose cross Y=12
+        b.getRelative(0, 12, -1).setType(Material.AIR);
+        b.getRelative(0, 12, 1).setType(Material.AIR);
+        b.getRelative(-1, 12, 0).setType(Material.AIR);
+        b.getRelative(0, 12, 0).setType(Material.AIR);
+        b.getRelative(1, 12, 0).setType(Material.AIR);
+        // Tip Y=13
+        b.getRelative(0, 13, 0).setType(Material.AIR);
     }
 
     public boolean isOnCooldown(Player player) {

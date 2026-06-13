@@ -50,7 +50,7 @@ public class LancioCommand implements CommandExecutor {
         if (onPlanet) {
             Location structure = findNearbyStructure(player.getLocation(), 15.0);
             if (structure == null) {
-                player.sendMessage(Component.text("Costruisci la struttura razzo (3 Iron Block + Pointed Dripstone) e usa /lancio.")
+                player.sendMessage(Component.text("Costruisci la struttura razzo e usa /lancio.")
                         .color(NamedTextColor.RED));
                 return true;
             }

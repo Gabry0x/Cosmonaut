@@ -2,7 +2,7 @@
 
 Plugin Paper per Minecraft 1.21 che aggiunge esplorazione spaziale: razzi craftabili, pianeti con terreno personalizzato, gravità ridotta e atmosfera aliena con danno da esposizione.
 
-**Versione:** 1.0.0-Alpha — **Autore:** ItaliaRevenge
+**Versione:** 1.4.0-Alpha — **Autore:** ItaliaRevenge
 
 ---
 
@@ -44,16 +44,29 @@ Produce un **Firework Rocket** con tag NBT personalizzato (`cosmonaut:cosmonaut_
 
 ### Piazzamento
 
-Con il razzo in mano, fai **click destro su un blocco**. Il plugin costruisce automaticamente la struttura fisica nella posizione sopra:
+Con il razzo in mano, fai **click destro su un blocco**. Il plugin costruisce automaticamente la struttura fisica nella posizione sopra (14 blocchi di altezza, impronta 5×5 ai booster):
 
 ```
-[Pointed Dripstone]  ← punta (y+3)
-[Iron Block]         ← (y+2)
-[Iron Block]         ← (y+1)
-[Iron Block]         ← base (y+0)
+         [■]              ← punta nera (y+13)
+       [■][■][■]          ← transizione naso (y+12)
+     [▓][▓][■][▓][▓]      ← corpo superiore (y+10..11)
+     [▓][▓][░][▓][▓]      ← banda metallica grigia (y+9)
+     [▓][▓][■][▓][▓]      ← corpo (y+8)
+     [▓][□][□][□][▓]      ← finestre arancio (y+6..7)
+     [▓][▓][■][▓][▓]      ← corpo (y+5)
+     [▓][▓][░][▓][▓]      ← banda metallica grigia (y+4)
+[■]  [▓][▓][■][▓][▓]  [■] ← corpo + booster (y+0..3)
+[■]  [▓][▓][■][▓][▓]  [■]
 ```
 
-I 4 blocchi sopra al punto di piazzamento devono essere liberi (aria), altrimenti il piazzamento viene bloccato. Il razzo viene rimosso dall'inventario al piazzamento.
+| Simbolo | Materiale |
+|---------|-----------|
+| `■` | Black Concrete |
+| `▓` | Orange Concrete |
+| `░` | Gray Concrete |
+| `□` | Orange Stained Glass |
+
+La colonna centrale (y+0 → y+13) deve essere completamente libera (aria), altrimenti il piazzamento viene bloccato. Il razzo viene rimosso dall'inventario al piazzamento.
 
 Dopo il piazzamento viene mostrato il messaggio:
 > *"Razzo posizionato! Usa `/cosmonaut setplanet <nome>` per impostare la destinazione, poi `/lancio` per partire."*
@@ -80,7 +93,7 @@ Prima di avviare, il plugin esegue questi controlli in ordine:
 4. Non è in cooldown
 5. C'è un razzo registrato entro **15 blocchi**
 6. Il razzo ha una destinazione configurata
-7. La struttura fisica è ancora intatta (3 Iron Block + Pointed Dripstone)
+7. La struttura fisica è ancora intatta (Orange Concrete + Gray Concrete + Black Concrete tip)
 
 Se la struttura è stata distrutta o modificata, il razzo viene de-registrato automaticamente.
 
