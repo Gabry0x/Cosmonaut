@@ -51,8 +51,7 @@ public class RocketManager {
             World w = Bukkit.getWorld(world != null ? world : "");
             if (w == null) continue;
             Location loc = new Location(w, x, y, z);
-            Rocket rocket = new Rocket(loc, dest);
-            rockets.put(locationKey(loc), rocket);
+            rockets.put(locationKey(loc), new Rocket(loc, dest));
         }
         plugin.getLogger().info("Caricati " + rockets.size() + " razzi.");
     }
@@ -89,9 +88,7 @@ public class RocketManager {
         ItemStack item = new ItemStack(Material.FIREWORK_ROCKET);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Razzo").color(NamedTextColor.GOLD));
-        meta.lore(List.of(
-                Component.text("Piazza il razzo e usa /lancio").color(NamedTextColor.GRAY)
-        ));
+        meta.lore(List.of(Component.text("Piazza il razzo e usa /lancio").color(NamedTextColor.GRAY)));
         meta.getPersistentDataContainer().set(Cosmonaut.ROCKET_ITEM_KEY, PersistentDataType.BOOLEAN, true);
         item.setItemMeta(meta);
         return item;
@@ -101,9 +98,7 @@ public class RocketManager {
         ItemStack item = new ItemStack(Material.IRON_HELMET);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Casco Spaziale").color(NamedTextColor.AQUA));
-        meta.lore(List.of(
-                Component.text("Protegge dall'assenza di atmosfera").color(NamedTextColor.GRAY)
-        ));
+        meta.lore(List.of(Component.text("Protegge dall'assenza di atmosfera").color(NamedTextColor.GRAY)));
         meta.getPersistentDataContainer().set(Cosmonaut.SPACE_HELMET_KEY, PersistentDataType.BOOLEAN, true);
         item.setItemMeta(meta);
         return item;
@@ -113,9 +108,7 @@ public class RocketManager {
         ItemStack item = new ItemStack(Material.BEACON);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Generatore di Pressione").color(NamedTextColor.LIGHT_PURPLE));
-        meta.lore(List.of(
-                Component.text("Piazza per creare una zona pressurizzata").color(NamedTextColor.GRAY)
-        ));
+        meta.lore(List.of(Component.text("Piazza per creare una zona pressurizzata").color(NamedTextColor.GRAY)));
         meta.getPersistentDataContainer().set(Cosmonaut.PRESSURIZER_KEY, PersistentDataType.BOOLEAN, true);
         item.setItemMeta(meta);
         return item;
@@ -123,14 +116,12 @@ public class RocketManager {
 
     public boolean isRocketItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
-        return item.getItemMeta().getPersistentDataContainer()
-                .has(Cosmonaut.ROCKET_ITEM_KEY, PersistentDataType.BOOLEAN);
+        return item.getItemMeta().getPersistentDataContainer().has(Cosmonaut.ROCKET_ITEM_KEY, PersistentDataType.BOOLEAN);
     }
 
     public boolean isPressurizerItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
-        return item.getItemMeta().getPersistentDataContainer()
-                .has(Cosmonaut.PRESSURIZER_KEY, PersistentDataType.BOOLEAN);
+        return item.getItemMeta().getPersistentDataContainer().has(Cosmonaut.PRESSURIZER_KEY, PersistentDataType.BOOLEAN);
     }
 
     public void placeRocketStructure(Block base) {
@@ -189,11 +180,53 @@ public class RocketManager {
         saveData();
     }
 
+    // ── PDC: posizione overworld ──────────────────────────────────────────────
+
+    private void saveOverworldPosition(Player player) {
+        Location loc = player.getLocation();
+        String data = loc.getWorld().getName() + ","
+                + loc.getX() + "," + loc.getY() + "," + loc.getZ() + ","
+                + loc.getYaw() + "," + loc.getPitch();
+        player.getPersistentDataContainer().set(
+                Cosmonaut.LAST_OVERWORLD_POS_KEY, PersistentDataType.STRING, data);
+    }
+
+    private Location getSavedOverworldLocation(Player player) {
+        String data = player.getPersistentDataContainer()
+                .get(Cosmonaut.LAST_OVERWORLD_POS_KEY, PersistentDataType.STRING);
+        if (data == null) return null;
+        String[] p = data.split(",");
+        if (p.length < 4) return null;
+        World world = Bukkit.getWorld(p[0]);
+        if (world == null) return null;
+        try {
+            double x     = Double.parseDouble(p[1]);
+            double y     = Double.parseDouble(p[2]);
+            double z     = Double.parseDouble(p[3]);
+            float  yaw   = p.length > 4 ? Float.parseFloat(p[4]) : 0f;
+            float  pitch = p.length > 5 ? Float.parseFloat(p[5]) : 0f;
+            return new Location(world, x, y, z, yaw, pitch);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    // ── Launch ────────────────────────────────────────────────────────────────
+
     public void startLaunch(Player player, Rocket rocket) {
         if (inFlight.contains(player.getUniqueId())) return;
         inFlight.add(player.getUniqueId());
 
-        Planet destination = plugin.getConfigManager().getPlanet(rocket.getDestinationPlanet());
+        boolean returning = plugin.getConfigManager()
+                .getPlanetByWorld(player.getWorld().getName()) != null;
+
+        Planet destination = null;
+        if (!returning) {
+            saveOverworldPosition(player);
+            destination = plugin.getConfigManager().getPlanet(rocket.getDestinationPlanet());
+        }
+
+        final Planet finalDest = destination;
 
         new BukkitRunnable() {
             int countdown = 10;
@@ -216,7 +249,7 @@ public class RocketManager {
                     countdown--;
                 } else {
                     cancel();
-                    executeLaunch(player, rocket, destination);
+                    executeLaunch(player, rocket, finalDest, returning);
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L);
@@ -229,7 +262,7 @@ public class RocketManager {
         w.spawnParticle(Particle.SMOKE, loc, 15, 0.3, 0.3, 0.3, 0.05);
     }
 
-    private void executeLaunch(Player player, Rocket rocket, Planet destination) {
+    private void executeLaunch(Player player, Rocket rocket, Planet destination, boolean returning) {
         GameMode originalMode = player.getGameMode();
         player.setGameMode(GameMode.SPECTATOR);
         player.setInvulnerable(true);
@@ -266,13 +299,14 @@ public class RocketManager {
 
                 if (ticks >= 100) {
                     cancel();
-                    showBlackScreenAndTeleport(player, destination, originalMode);
+                    showBlackScreenAndTeleport(player, destination, originalMode, returning);
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    private void showBlackScreenAndTeleport(Player player, Planet destination, GameMode originalMode) {
+    private void showBlackScreenAndTeleport(Player player, Planet destination,
+                                             GameMode originalMode, boolean returning) {
         player.showTitle(Title.title(
                 Component.text("          ").color(NamedTextColor.BLACK),
                 Component.empty(),
@@ -282,21 +316,49 @@ public class RocketManager {
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) { inFlight.remove(player.getUniqueId()); return; }
 
-            World dest = destination != null ? Bukkit.getWorld(destination.getWorldName()) : null;
-            if (dest != null) {
-                player.teleport(dest.getSpawnLocation());
+            if (returning) {
+                // Ritorno all'overworld: usa la posizione salvata nel PDC
+                Location savedLoc = getSavedOverworldLocation(player);
+                World overworld = savedLoc != null ? savedLoc.getWorld() : null;
+                if (overworld == null) overworld = Bukkit.getWorld("world");
+                if (overworld == null) {
+                    overworld = Bukkit.getWorlds().stream()
+                            .filter(wo -> plugin.getConfigManager().getPlanetByWorld(wo.getName()) == null)
+                            .findFirst().orElse(null);
+                }
+
+                Location target = (savedLoc != null && savedLoc.getWorld() != null)
+                        ? savedLoc : (overworld != null ? overworld.getSpawnLocation() : null);
+
+                if (target != null) {
+                    target.getWorld().loadChunk(target.getBlockX() >> 4, target.getBlockZ() >> 4);
+                    player.teleport(target);
+                }
                 player.setGameMode(originalMode);
                 player.setInvulnerable(false);
-                String planetName = destination.getName();
                 player.showTitle(Title.title(
-                        Component.text("Benvenuto su " + capitalize(planetName)).color(NamedTextColor.GOLD),
+                        Component.text("Benvenuto sulla Terra").color(NamedTextColor.GREEN),
                         Component.empty(),
                         Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(3000), Duration.ofMillis(1000))
                 ));
+
             } else {
-                player.setGameMode(originalMode);
-                player.setInvulnerable(false);
-                player.sendMessage(Component.text("Errore: mondo di destinazione non trovato!").color(NamedTextColor.RED));
+                // Lancio verso un pianeta
+                World dest = destination != null ? Bukkit.getWorld(destination.getWorldName()) : null;
+                if (dest != null) {
+                    player.teleport(dest.getSpawnLocation());
+                    player.setGameMode(originalMode);
+                    player.setInvulnerable(false);
+                    player.showTitle(Title.title(
+                            Component.text("Benvenuto su " + capitalize(destination.getName())).color(NamedTextColor.GOLD),
+                            Component.empty(),
+                            Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(3000), Duration.ofMillis(1000))
+                    ));
+                } else {
+                    player.setGameMode(originalMode);
+                    player.setInvulnerable(false);
+                    player.sendMessage(Component.text("Errore: mondo di destinazione non trovato!").color(NamedTextColor.RED));
+                }
             }
 
             cooldowns.put(player.getUniqueId(),

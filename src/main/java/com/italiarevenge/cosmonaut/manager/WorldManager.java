@@ -5,6 +5,7 @@ import com.italiarevenge.cosmonaut.generator.LunaGenerator;
 import com.italiarevenge.cosmonaut.generator.MarteGenerator;
 import com.italiarevenge.cosmonaut.model.Planet;
 import org.bukkit.*;
+import org.bukkit.entity.SpawnCategory;
 import org.bukkit.generator.ChunkGenerator;
 
 import java.io.File;
@@ -35,19 +36,21 @@ public class WorldManager {
 
         ChunkGenerator generator = getGenerator(worldName);
         WorldCreator creator = new WorldCreator(worldName);
-        creator.environment(World.Environment.NORMAL);
+        creator.environment(World.Environment.THE_END); // cielo nero/stellato senza resource pack
         if (generator != null) creator.generator(generator);
 
-        // createWorld loads an existing world from disk without overwriting chunks;
-        // for a brand-new world it generates it from scratch.
         World world = Bukkit.createWorld(creator);
         if (world == null) {
             plugin.getLogger().severe("Impossibile creare/caricare il mondo: " + worldName);
             return;
         }
 
+        // Nessun mob spawn — impostato sempre, anche su mondo già esistente
+        for (SpawnCategory cat : SpawnCategory.values()) {
+            try { world.setSpawnLimit(cat, 0); } catch (Exception ignored) {}
+        }
+
         if (!existsOnDisk) {
-            // First-time creation only — never touch an already-existing world's settings
             world.setDifficulty(Difficulty.NORMAL);
             world.setTime(6000);
             world.setSpawnLocation(0, 70, 0);

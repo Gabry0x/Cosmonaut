@@ -24,15 +24,17 @@ public final class Cosmonaut extends JavaPlugin {
     public static NamespacedKey ROCKET_ITEM_KEY;
     public static NamespacedKey SPACE_HELMET_KEY;
     public static NamespacedKey PRESSURIZER_KEY;
+    public static NamespacedKey LAST_OVERWORLD_POS_KEY;
 
     @Override
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
 
-        ROCKET_ITEM_KEY  = new NamespacedKey(this, "cosmonaut_rocket");
-        SPACE_HELMET_KEY = new NamespacedKey(this, "space_helmet");
-        PRESSURIZER_KEY  = new NamespacedKey(this, "pressurizer");
+        ROCKET_ITEM_KEY          = new NamespacedKey(this, "cosmonaut_rocket");
+        SPACE_HELMET_KEY         = new NamespacedKey(this, "space_helmet");
+        PRESSURIZER_KEY          = new NamespacedKey(this, "pressurizer");
+        LAST_OVERWORLD_POS_KEY   = new NamespacedKey(this, "last_overworld_pos");
 
         configManager    = new ConfigManager(this);
         worldManager     = new WorldManager(this);

@@ -5,6 +5,7 @@ import com.italiarevenge.cosmonaut.model.Planet;
 import com.italiarevenge.cosmonaut.model.Rocket;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -44,6 +45,22 @@ public class LancioCommand implements CommandExecutor {
             return true;
         }
 
+        // Se il giocatore è su un pianeta → cerca struttura nelle vicinanze per il ritorno
+        boolean onPlanet = plugin.getConfigManager().getPlanetByWorld(player.getWorld().getName()) != null;
+        if (onPlanet) {
+            Location structure = findNearbyStructure(player.getLocation(), 15.0);
+            if (structure == null) {
+                player.sendMessage(Component.text("Costruisci la struttura razzo (3 Iron Block + Pointed Dripstone) e usa /lancio.")
+                        .color(NamedTextColor.RED));
+                return true;
+            }
+            // Razzo temporaneo: non viene registrato, la destinazione è gestita da RocketManager
+            Rocket returnRocket = new Rocket(structure, "world");
+            plugin.getRocketManager().startLaunch(player, returnRocket);
+            return true;
+        }
+
+        // Lancio normale dall'overworld
         Rocket rocket = plugin.getRocketManager().findNearestRocket(player.getLocation(), 15.0);
         if (rocket == null) {
             player.sendMessage(Component.text("Nessun razzo registrato nelle vicinanze.")
@@ -77,5 +94,20 @@ public class LancioCommand implements CommandExecutor {
 
         plugin.getRocketManager().startLaunch(player, rocket);
         return true;
+    }
+
+    private Location findNearbyStructure(Location origin, double maxDist) {
+        int r = (int) maxDist;
+        double maxSq = maxDist * maxDist;
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                for (int dy = -5; dy <= 5; dy++) {
+                    if (dx * dx + dz * dz > maxSq) continue;
+                    Location check = origin.clone().add(dx, dy, dz);
+                    if (plugin.getRocketManager().isValidRocketStructure(check)) return check;
+                }
+            }
+        }
+        return null;
     }
 }
